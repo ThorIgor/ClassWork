@@ -1,0 +1,5 @@
+﻿  Main.cpp
+c:\users\thor_i\source\repos\igorpr(1)\igorpr(1)\main.cpp(6): warning C4326: return type of 'main' should be 'int' instead of 'void'
+  Ship.cpp
+  Generating Code...
+  IgorPr(1).vcxproj -> C:\Users\thor_i\source\repos\IgorPr(1)\Debug\IgorPr(1).exe
