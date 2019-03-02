@@ -16,20 +16,6 @@ public:
 	virtual void Press() const abstract;
 };
 
-class WinButton : public Button
-{
-public:
-	void Press() const override;
-};
-
-class MacButton : public Button
-{
-public:
-	void Press() const override;
-};
-
-// ------------------------------
- 
 class CheckBox abstract
 {
 protected:
@@ -43,6 +29,22 @@ public:
 
 	virtual void Press();
 };
+
+// ------------------------------
+
+class WinButton : public Button
+{
+public:
+	void Press() const override;
+};
+
+class MacButton : public Button
+{
+public:
+	void Press() const override;
+};
+
+// ------------------------------
 
 class WinCheckBox : public CheckBox
 {
