@@ -1,7 +1,0 @@
-﻿  Class.cpp
-c:\users\thor_i\source\repos\igorpr\igorpr\class.cpp(12): warning C4101: 'dage': unreferenced local variable
-  Main.cpp
-c:\users\thor_i\source\repos\igorpr\igorpr\main.cpp(9): warning C4326: return type of 'main' should be 'int' instead of 'void'
-c:\users\thor_i\source\repos\igorpr\igorpr\main.cpp(10): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-  Generating Code...
-  IgorPr.vcxproj -> C:\Users\thor_i\source\repos\IgorPr\Debug\IgorPr.exe
