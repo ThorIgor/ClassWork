@@ -4,141 +4,193 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
-using System.Xml.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Storage
 {
     [Serializable]
-    public class Client
+    class Client
     {
-        public string name;
+        string name;
+
         public Client(string Name) => name = Name;
-        public Client() => name = "Anonim";
-        public override string ToString()
-        {
-            return name;
-        }
+        public override string ToString() => name;
     }
     [Serializable]
-    public class Order
+    class Order
     {
-        public string name;
-        public double area;
-        public DateTime dateStart;
-        public DateTime dateEnd;
-        public double price;
-        public Client client;
-        public Order(string Name, double Area, DateTime Date, TimeSpan time, Client cl, double k)
+        string name;
+        double area;
+        DateTime dateStart;
+        DateTime dateEnd;
+        double price;
+        Client client;
+        
+        public Order(string Name, double Area, DateTime Start, TimeSpan Time, Client Client, double k)
         {
             name = Name;
             area = Area;
-            dateStart = Date;
-            dateEnd = dateStart + time;
-            client = cl;
-            price = area * k * time.TotalDays;
-        }
-        public Order()
-        {
-            name = "Nothing";
-            area = 0;
-            price = 0;
-            client = new Client();
+            dateStart = Start;
+            dateEnd = dateStart + Time;
+            client = Client;
+            price = area * Time.Days * k;
         }
         public string Name { get { return name; } }
         public double Area { get { return area; } }
-        public TimeSpan TimeToEnd { get { return dateEnd - DateTime.Now; } }
-        public double Price { get { return price; } }
-        public override string ToString()
-        {
-            return $"{name}\tArea: {price}\tDate of end: {dateEnd.Year}.{dateEnd.Month}.{dateEnd.Day}\tPrice: {price}\tClient: {client}";
-        }
+        public Client Client { get { return client; } }
+        public override string ToString() => $"{name}\t{area}\t{dateEnd.Year}.{dateEnd.Month}.{dateEnd.Day}\t{price}\t{client}";
     }
     class Storage
     {
         double area;
-        double rarea;
+        double residualArea;
         double price;
-        List<Order> orders;
-        string dateBase;
+        string dateBaseActive;
+        string dateBaseTakenOut;
 
         public Storage(double Area, double Price, string DateBase)
         {
             area = Area;
-            rarea = area;
+            residualArea = area;
             price = Price;
-            dateBase = DateBase + ".xml";
-            orders = new List<Order>();
-        }
-        public double ResidualArea { get { return rarea; } }
-
-        XmlSerializer GetXmlSerializer()
-        {
-            Type[] types = { typeof(Client) };
-            return new XmlSerializer(typeof(List<Order>), types);
-        }
-        List<Order> GetOrders()
-        {
-            if (!File.Exists(dateBase))
-                return new List<Order>();
-            FileStream fs = new FileStream(dateBase, FileMode.OpenOrCreate, FileAccess.Read);
-            using (TextReader tr = new StreamReader(fs))
-            {
-                XmlSerializer xml = GetXmlSerializer();
-                return (List<Order>)xml.Deserialize(tr);
-            }
-        }
-       
-        public void AddOrder(Order order)
-        {
-            if (order.Area > ResidualArea)
-                throw new Exception("All area is occupied");
-            if (order == null)
-                throw new ArgumentNullException();
-            orders = GetOrders();
-            orders.Add(order);
-            FileStream fs = new FileStream(dateBase, FileMode.Create, FileAccess.Write);
-            using (TextWriter tw = new StreamWriter(fs))
-            {
-                XmlSerializer xml = GetXmlSerializer();
-                xml.Serialize(tw, orders);
-            }
-                
-        }
-        public void AddOrder(string Name, double Area, TimeSpan time, Client cl)
-        {
-            if(Area > ResidualArea)
-                throw new Exception("All area is occupied");
-            Order order = new Order(Name, Area, DateTime.Now, time, cl, price);
-            orders = GetOrders();
-            orders.Add(order);
-            FileStream fs = new FileStream(dateBase, FileMode.Create, FileAccess.Write);
-            using (TextWriter tw = new StreamWriter(fs))
-            {
-                XmlSerializer xml = GetXmlSerializer();
-                xml.Serialize(tw, orders);
-            }
+            dateBaseActive = DateBase + "Active.dat";
+            dateBaseTakenOut = DateBase + "TakenOut.dat";
         }
 
-        public void PrintOrders()
+        public double Price
         {
-            foreach (var or in GetOrders())
-                Console.WriteLine(or);
+            get { return price; }
+            set
+            {
+                if (value < 0)
+                    return;
+                price = value;
+            }
         }
-    }
-    class Program
-    {
-        static void Main(string[] args)
+        public double ResidualArea { get { return residualArea; } }
+
+        List<Order> GetOrdersActive()
         {
             try
             {
-                Storage str = new Storage(1000, 0.5, "orders");
-                str.AddOrder("Meet", 10, new TimeSpan(TimeSpan.TicksPerDay * 10), new Client("Dima"));
-                str.AddOrder("Milk", 50, new TimeSpan(TimeSpan.TicksPerDay * 7), new Client("Dana"));
+                using (var fs = new FileStream(dateBaseActive, FileMode.Open, FileAccess.Read))
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    return (List<Order>)bf.Deserialize(fs);
+                }
             }
             catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
+            return new List<Order>();
+        }
+        List<Order> GetOrdersTakenOut()
+        {
+            try
+            {
+                using (var fs = new FileStream(dateBaseTakenOut, FileMode.Open, FileAccess.Read))
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    return (List<Order>)bf.Deserialize(fs);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return new List<Order>();
+        }
+
+        bool SerializeActive(List<Order> orders)
+        {
+            try
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                using (var fs = new FileStream(dateBaseActive, FileMode.Create, FileAccess.Write))
+                    bf.Serialize(fs, orders);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+        bool SerializeTakenOut(List<Order> orders)
+        {
+            try
+            {
+                BinaryFormatter bf = new BinaryFormatter();
+                using (var fs = new FileStream(dateBaseTakenOut, FileMode.Create, FileAccess.Write))
+                    bf.Serialize(fs, orders);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return false;
+        }
+
+        public void AddOrder(Order order)
+        {
+            List<Order> orders = GetOrdersActive();
+            orders.Add(order);
+            if(SerializeActive(orders))
+                residualArea -= order.Area;
+        }
+        public void AddOrder(string Name, double Area, DateTime Start, TimeSpan Time, Client Client)
+        {
+            Order order = new Order(Name, Area, Start, Time, Client, price);
+            if (order.Area > residualArea)
+                throw new Exception("All area is occupied");
+            List<Order> orders = GetOrdersActive();
+            orders.Add(order);
+            if (SerializeActive(orders))
+                residualArea -= order.Area;
+        }
+
+        public void TakeOut(Order order)
+        {
+            List<Order> orders = GetOrdersActive();
+            orders.Remove(order);
+            if (SerializeActive(orders))
+                residualArea += order.Area;
+            orders = GetOrdersTakenOut();
+            orders.Add(order);
+            SerializeTakenOut(orders);
+        }
+        public void TakeOut(string Name, double Area, DateTime Start, TimeSpan Time, Client Client)
+        {
+            Order order = new Order(Name, Area, Start, Time, Client, price);
+            List<Order> orders = GetOrdersActive();
+            orders.Remove(order);
+            if (SerializeActive(orders))
+                residualArea += order.Area;
+            orders = GetOrdersTakenOut();
+            orders.Add(order);
+            SerializeTakenOut(orders);
+        }
+
+        public void PrintActive()
+        {
+            foreach (var order in GetOrdersActive())
+                Console.WriteLine(order);
+        }
+        public void PrintTakenOut()
+        {
+            foreach (var order in GetOrdersTakenOut())
+                Console.WriteLine(order);
+        }
+
+
+    }
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            
         }
     }
 }
